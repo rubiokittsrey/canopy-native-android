@@ -3,21 +3,24 @@ plugins {
 }
 
 android {
-    namespace 'app.practice.canopy_native_android'
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
+    namespace 'app.practice.native_java_mvvm'
+    compileSdk 36
 
     defaultConfig {
-        applicationId "app.practice.canopy_native_android"
+        applicationId "app.practice.native_java_mvvm"
         minSdk 24
         targetSdk 36
         versionCode 1
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        // Room schema export for migrations
+        javaCompileOptions {
+            annotationProcessorOptions {
+                arguments += ["room.schemaLocation": "$projectDir/schemas".toString()]
+            }
+        }
     }
 
     buildTypes {
@@ -26,17 +29,54 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
     }
+
+    // Enable ViewBinding
+    buildFeatures {
+        viewBinding true
+    }
 }
 
 dependencies {
+    // AndroidX Core
     implementation libs.appcompat
     implementation libs.material
     implementation libs.activity
     implementation libs.constraintlayout
+
+    // Lifecycle (ViewModel + LiveData)
+    implementation 'androidx.lifecycle:lifecycle-viewmodel:2.8.7'
+    implementation 'androidx.lifecycle:lifecycle-livedata:2.8.7'
+    implementation 'androidx.lifecycle:lifecycle-runtime:2.8.7'
+    implementation 'androidx.lifecycle:lifecycle-common-java8:2.8.7'
+
+    // Room Database
+    implementation 'androidx.room:room-runtime:2.7.1'
+    implementation 'androidx.room:room-paging:2.7.1'
+    annotationProcessor 'androidx.room:room-compiler:2.7.1'
+
+    // Paging 3 for lazy loading
+    implementation 'androidx.paging:paging-runtime:3.3.6'
+
+    // Retrofit + Gson for networking
+    implementation 'com.squareup.retrofit2:retrofit:2.11.0'
+    implementation 'com.squareup.retrofit2:converter-gson:2.11.0'
+    implementation 'com.squareup.okhttp3:logging-interceptor:4.12.0'
+
+    // Security for encrypted SharedPreferences (token storage)
+    implementation 'androidx.security:security-crypto:1.1.0-alpha06'
+
+    // SwipeRefreshLayout
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
+
+    // RecyclerView
+    implementation 'androidx.recyclerview:recyclerview:1.4.0'
+
+    // Testing
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
