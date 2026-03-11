@@ -64,7 +64,7 @@ public class ApiClient {
                 }
             }
         }
-        return  instance;
+        return instance;
     }
 
     // instance getters
