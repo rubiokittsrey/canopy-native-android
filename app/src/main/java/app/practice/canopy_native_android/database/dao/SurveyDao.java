@@ -39,7 +39,7 @@ public interface SurveyDao {
     // -- delete
 
     @Query("DELETE FROM survey_entries WHERE survey_id = :surveyId")
-    void deleteBydId(String surveyId);
+    void deleteById(String surveyId);
 
     @Query("DELETE FROM survey_entries")
     void deleteAll();

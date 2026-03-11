@@ -23,6 +23,7 @@ import app.practice.canopy_native_android.models.dto.RegisterRequest;
 import app.practice.canopy_native_android.models.dto.UserResponse;
 import app.practice.canopy_native_android.utils.Resource;
 import app.practice.canopy_native_android.utils.TokenManager;
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -167,7 +168,15 @@ public class AuthRepository {
         return result;
     }
 
-    // Get cached user (synchronously, for non-ui threads)
+    public LiveData<UserEntity> getCachedUser() {
+        String userId = tokenManager.getUserId();
+        if (userId != null) {
+            return userDao.getUserById(userId);
+        }
+        return new MutableLiveData<>(null);
+    }
+
+    // get cached user (synchronously, for non-ui threads)
     public UserEntity getCachedUserSync() {
         String userId = tokenManager.getUserId();
         if (userId != null) {
@@ -193,11 +202,12 @@ public class AuthRepository {
     }
 
     private String parseError(Response<?> response) {
-        try {
-            if (response.errorBody() != null) {
-                String errorJson = response.errorBody().string();
+        try (ResponseBody errorBody = response.errorBody()) {
+            if (errorBody != null) {
+                String errorJson = errorBody.string();
                 ErrorResponse errorResponse = new com.google.gson.Gson()
                         .fromJson(errorJson, ErrorResponse.class);
+
                 if (errorResponse != null) {
                     return errorResponse.getDisplayMessage();
                 }
