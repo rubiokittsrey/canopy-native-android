@@ -1,5 +1,3 @@
-// app/src/main/java/app/practice/native_java_mvvm/models/dto/UserResponse.java
-
 package app.practice.canopy_native_android.models.dto;
 
 import com.google.gson.annotations.SerializedName;

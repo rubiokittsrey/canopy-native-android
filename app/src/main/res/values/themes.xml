@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Base.Theme.Canopynativeandroid" parent="Theme.Material3.Light.NoActionBar">
+    <style name="Theme.CanopyNativeAndroid" parent="Theme.Material3.Light.NoActionBar">
         <!-- primary brand color -->
         <item name="colorPrimary">@color/primary</item>
         <item name="colorPrimaryVariant">@color/primary_dark</item>
@@ -27,7 +27,7 @@
     </style>
 
     <!-- splash screen theme -->
-    <style name="Theme.Canopynativeandroid.Splash" parent="Theme.Canopynativeandroid">
+    <style name="Theme.CanopyNativeAndroid.Splash" parent="Theme.CanopyNativeAndroid">
         <item name="android:windowBackground">@color/primary</item>
         <item name="android:statusBarColor">@color/primary</item>
     </style>
