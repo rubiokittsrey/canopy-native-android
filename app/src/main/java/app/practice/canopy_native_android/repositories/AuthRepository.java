@@ -45,7 +45,6 @@ public class AuthRepository {
         this.mainHandler = new android.os.Handler(Looper.getMainLooper());
     }
 
-    /// Login with email and password. On success, store tokens and user data locally.
     public LiveData<Resource<UserEntity>> login(String email, String password) {
         MutableLiveData<Resource<UserEntity>> result = new MutableLiveData<>();
         result.setValue(Resource.loading());
@@ -89,7 +88,6 @@ public class AuthRepository {
         return result;
     }
 
-    /// Register a new user. On success, store tokens and user data locally.
     public LiveData<Resource<UserEntity>> register(
             String email, String password, String fullName, String organization, String phoneNumber) {
 
@@ -138,7 +136,6 @@ public class AuthRepository {
         return result;
     }
 
-    /// Fetch current user's profile from API and update local database.
     public LiveData<Resource<UserEntity>> fetchProfile() {
         MutableLiveData<Resource<UserEntity>> result = new MutableLiveData<>();
         result.setValue(Resource.loading());

@@ -1,5 +1,54 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <!-- Primary Brand Colors -->
+    <color name="primary">#2E7D32</color>
+    <color name="primary_dark">#1B5E20</color>
+    <color name="primary_light">#4CAF50</color>
+    <color name="primary_variant">#388E3C</color>
+
+    <!-- Secondary Colors -->
+    <color name="secondary">#00796B</color>
+    <color name="secondary_dark">#004D40</color>
+    <color name="secondary_light">#26A69A</color>
+
+    <!-- Background Colors -->
+    <color name="background">#FAFAFA</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="surface_variant">#F5F5F5</color>
+
+    <!-- Text Colors -->
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
+    <color name="text_hint">#9E9E9E</color>
+    <color name="text_on_primary">#FFFFFF</color>
+    <color name="text_on_secondary">#FFFFFF</color>
+
+    <!-- Sync Status Colors -->
+    <color name="sync_synced">#4CAF50</color>
+    <color name="sync_pending">#FF9800</color>
+    <color name="sync_failed">#F44336</color>
+
+    <!-- Weather Badge Colors -->
+    <color name="weather_sunny">#FFC107</color>
+    <color name="weather_cloudy">#78909C</color>
+    <color name="weather_rainy">#42A5F5</color>
+    <color name="weather_windy">#26C6DA</color>
+    <color name="weather_foggy">#B0BEC5</color>
+
+    <!-- State Colors -->
+    <color name="error">#B00020</color>
+    <color name="error_light">#FFCDD2</color>
+    <color name="success">#4CAF50</color>
+    <color name="warning">#FF9800</color>
+    <color name="info">#2196F3</color>
+
+    <!-- Divider -->
+    <color name="divider">#E0E0E0</color>
+
+    <!-- Card -->
+    <color name="card_background">#FFFFFF</color>
+    <color name="card_stroke">#E0E0E0</color>
+
+    <!-- Ripple -->
+    <color name="ripple">#1F000000</color>
 </resources>

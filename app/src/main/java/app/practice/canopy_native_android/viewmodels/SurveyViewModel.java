@@ -136,7 +136,6 @@ public class SurveyViewModel extends AndroidViewModel {
 
     // -- list operations
 
-    /// Refresh surveys from API.
     public void refreshSurveys() {
         isLoading.setValue(true);
         refreshResult.setValue(Resource.loading());
@@ -149,12 +148,12 @@ public class SurveyViewModel extends AndroidViewModel {
         });
     }
 
-    /// Apply filter to survey list
     public void setFilter(SurveyFilter filter) {
         currentFilter.setValue(filter);
     }
 
-    /// Update search query (debounce should be handled in UI)
+    // updates search query
+    // NOTE: handle debounce in UI
     public void setSearchQuery(String query) {
         SurveyFilter filter = currentFilter.getValue();
         if (filter == null) {
@@ -164,19 +163,19 @@ public class SurveyViewModel extends AndroidViewModel {
         currentFilter.setValue(filter);
     }
 
-    /// Clear all filters
+    // clear filters
     public void clearFilters() {
         currentFilter.setValue(new SurveyFilter());
     }
 
     // -- detail operations
 
-    /// Select a survey for detail view
+    // select a survey for detail view
     public void selectSurvey(String surveyId) {
         selectedSurveyId.setValue(surveyId);
     }
 
-    /// Fetch latest data for selected survey from API
+    // fetch latest data for selected survey from API
     public void refreshSelectedSurvey() {
         String surveyId = selectedSurveyId.getValue();
         if (surveyId != null) {

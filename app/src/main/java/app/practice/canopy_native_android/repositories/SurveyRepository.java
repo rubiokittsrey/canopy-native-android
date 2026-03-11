@@ -56,6 +56,8 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
+// TODO: modularize this code
+
 /// Repository for survey operations
 /// Handles CRUD operations with offline-first sync support
 public class SurveyRepository {
