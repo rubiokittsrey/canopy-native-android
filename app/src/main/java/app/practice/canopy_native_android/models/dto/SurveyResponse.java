@@ -199,7 +199,7 @@ public class SurveyResponse {
         private Double elevationM;
 
         @SerializedName("slope_gradient_deg")
-        private double slopeGradientDeg;
+        private Double slopeGradientDeg;
 
         @SerializedName("slope_aspect")
         private String slopeAspect;

@@ -61,6 +61,10 @@ dependencies {
 
     // Paging 3 for lazy loading
     implementation 'androidx.paging:paging-runtime:3.3.6'
+    implementation 'androidx.paging:paging-guava:3.3.6'
+
+    // Concurrent futures (for ListenableFuture in RemoteMediator)
+    implementation 'androidx.concurrent:concurrent-futures:1.2.0'
 
     // Retrofit + Gson for networking
     implementation 'com.squareup.retrofit2:retrofit:2.11.0'

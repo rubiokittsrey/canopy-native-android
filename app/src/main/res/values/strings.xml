@@ -123,4 +123,9 @@
     <string name="cd_add_survey">Add new survey</string>
     <string name="cd_back">Go back</string>
     <string name="cd_menu">Menu</string>
+
+    <!-- debug -->
+    <string name="clear_cache">Clear Cache</string>
+    <string name="clear_cache_confirm">This will delete all cached survey data and remote keys. Pending (unsynced) surveys will be lost. Continue?</string>
+    <string name="cache_cleared">Cache cleared</string>
 </resources>

@@ -2,13 +2,17 @@ package app.practice.canopy_native_android.database;
 
 import android.content.Context;
 
+import androidx.annotation.NonNull;
 import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
+import androidx.room.migration.Migration;
+import androidx.sqlite.db.SupportSQLiteDatabase;
 
 import app.practice.canopy_native_android.database.dao.BiodiversityDao;
 import app.practice.canopy_native_android.database.dao.HazardDao;
 import app.practice.canopy_native_android.database.dao.InfrastructureDao;
+import app.practice.canopy_native_android.database.dao.RemoteKeyDao;
 import app.practice.canopy_native_android.database.dao.SoilDao;
 import app.practice.canopy_native_android.database.dao.SurveyDao;
 import app.practice.canopy_native_android.database.dao.TopographicDao;
@@ -18,6 +22,7 @@ import app.practice.canopy_native_android.database.dao.WaterDao;
 import app.practice.canopy_native_android.database.entities.BiodiversityEntity;
 import app.practice.canopy_native_android.database.entities.HazardEntity;
 import app.practice.canopy_native_android.database.entities.InfrastructureEntity;
+import app.practice.canopy_native_android.database.entities.RemoteKeyEntity;
 import app.practice.canopy_native_android.database.entities.SoilEntity;
 import app.practice.canopy_native_android.database.entities.SurveyEntity;
 import app.practice.canopy_native_android.database.entities.TopographicEntity;
@@ -35,15 +40,25 @@ import app.practice.canopy_native_android.database.entities.WaterEntity;
         WaterEntity.class,
         BiodiversityEntity.class,
         HazardEntity.class,
-        InfrastructureEntity.class
+        InfrastructureEntity.class,
+        RemoteKeyEntity.class
     },
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 public abstract class AppDatabase extends RoomDatabase {
 
     private static final String DATABASE_NAME = "canopy_database";
     private static volatile AppDatabase instance;
+
+    static final Migration MIGRATION_1_2 = new Migration(1, 2) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL(
+                    "ALTER TABLE survey_entries ADD COLUMN remote_order INTEGER NOT NULL DEFAULT 2147483647"
+            );
+        }
+    };
 
     // abstract dao getters
     public abstract UserDao userDao();
@@ -55,6 +70,7 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract BiodiversityDao biodiversityDao();
     public abstract HazardDao hazardDao();
     public abstract InfrastructureDao infrastructureDao();
+    public abstract RemoteKeyDao remoteKeyDao();
 
     /**
      * Double-checked locking singleton pattern
@@ -67,7 +83,8 @@ public abstract class AppDatabase extends RoomDatabase {
                             context.getApplicationContext(),
                             AppDatabase.class,
                             DATABASE_NAME
-                    ).fallbackToDestructiveMigration(false).build();
+                    ).addMigrations(MIGRATION_1_2)
+                    .fallbackToDestructiveMigration(false).build();
                 }
             }
         }

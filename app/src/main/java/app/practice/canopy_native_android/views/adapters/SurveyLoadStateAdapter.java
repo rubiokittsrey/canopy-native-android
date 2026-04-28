@@ -36,7 +36,7 @@ public class SurveyLoadStateAdapter extends LoadStateAdapter<SurveyLoadStateAdap
         holder.bind(loadState);
     }
 
-    static class LoadStateViewHolder extends RecyclerView.ViewHolder {
+    public static class LoadStateViewHolder extends RecyclerView.ViewHolder {
 
         private final ItemLoadStateBinding binding;
         private final Runnable retryCallback;

@@ -1,0 +1,809 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "11b643054a2235985b79c5d33dfa9bfb",
+    "entities": [
+      {
+        "tableName": "users",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`user_id` TEXT NOT NULL, `email` TEXT NOT NULL, `full_name` TEXT NOT NULL, `phone_number` TEXT NOT NULL, `organization` TEXT, `profile_photo` TEXT, `bio` TEXT, `location` TEXT, `is_active` INTEGER NOT NULL, `date_joined` TEXT, `updated_at` TEXT, PRIMARY KEY(`user_id`))",
+        "fields": [
+          {
+            "fieldPath": "userId",
+            "columnName": "user_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "email",
+            "columnName": "email",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fullName",
+            "columnName": "full_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "phoneNumber",
+            "columnName": "phone_number",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "organization",
+            "columnName": "organization",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "profilePhoto",
+            "columnName": "profile_photo",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "bio",
+            "columnName": "bio",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "location",
+            "columnName": "location",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "isActive",
+            "columnName": "is_active",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dateJoined",
+            "columnName": "date_joined",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "user_id"
+          ]
+        }
+      },
+      {
+        "tableName": "survey_entries",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`survey_id` TEXT NOT NULL, `observer_id` TEXT NOT NULL, `observer_name` TEXT NOT NULL, `organization` TEXT, `survey_date` TEXT NOT NULL, `survey_time` TEXT NOT NULL, `weather_condition` TEXT NOT NULL, `survey_method` TEXT NOT NULL, `gps_latitude` REAL, `gps_longitude` REAL, `gps_accuracy_meters` REAL, `notes` TEXT, `photos` TEXT, `survey_type` TEXT, `device_info` TEXT, `sync_status` TEXT NOT NULL, `created_at` TEXT NOT NULL, `updated_at` TEXT NOT NULL, PRIMARY KEY(`survey_id`))",
+        "fields": [
+          {
+            "fieldPath": "surveyId",
+            "columnName": "survey_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "observerId",
+            "columnName": "observer_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "observerName",
+            "columnName": "observer_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "organization",
+            "columnName": "organization",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "surveyDate",
+            "columnName": "survey_date",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "surveyTime",
+            "columnName": "survey_time",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "weatherCondition",
+            "columnName": "weather_condition",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "surveyMethod",
+            "columnName": "survey_method",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "gpsLatitude",
+            "columnName": "gps_latitude",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "gpsLongitude",
+            "columnName": "gps_longitude",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "gpsAccuracyMeters",
+            "columnName": "gps_accuracy_meters",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "notes",
+            "columnName": "notes",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "photos",
+            "columnName": "photos",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "surveyType",
+            "columnName": "survey_type",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "deviceInfo",
+            "columnName": "device_info",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "syncStatus",
+            "columnName": "sync_status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "survey_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_survey_entries_observer_id",
+            "unique": false,
+            "columnNames": [
+              "observer_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_survey_entries_observer_id` ON `${TABLE_NAME}` (`observer_id`)"
+          },
+          {
+            "name": "index_survey_entries_survey_date",
+            "unique": false,
+            "columnNames": [
+              "survey_date"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_survey_entries_survey_date` ON `${TABLE_NAME}` (`survey_date`)"
+          },
+          {
+            "name": "index_survey_entries_sync_status",
+            "unique": false,
+            "columnNames": [
+              "sync_status"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_survey_entries_sync_status` ON `${TABLE_NAME}` (`sync_status`)"
+          }
+        ]
+      },
+      {
+        "tableName": "topographic_data",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`survey_id` TEXT NOT NULL, `elevation_m` REAL, `slope_gradient_deg` REAL, `slope_aspect` TEXT, `landform_type` TEXT, `drainage_pattern` TEXT, `land_use` TEXT, `land_cover_description` TEXT, PRIMARY KEY(`survey_id`), FOREIGN KEY(`survey_id`) REFERENCES `survey_entries`(`survey_id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "surveyId",
+            "columnName": "survey_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "elevationM",
+            "columnName": "elevation_m",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "slopeGradientDeg",
+            "columnName": "slope_gradient_deg",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "slopeAspect",
+            "columnName": "slope_aspect",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "landformType",
+            "columnName": "landform_type",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "drainagePattern",
+            "columnName": "drainage_pattern",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "landUse",
+            "columnName": "land_use",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "landCoverDescription",
+            "columnName": "land_cover_description",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "survey_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_topographic_data_survey_id",
+            "unique": false,
+            "columnNames": [
+              "survey_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_topographic_data_survey_id` ON `${TABLE_NAME}` (`survey_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "survey_entries",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "survey_id"
+            ],
+            "referencedColumns": [
+              "survey_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "vegetation_data",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`survey_id` TEXT NOT NULL, `vegetation_type` TEXT, `canopy_cover_pct` INTEGER, `canopy_height_m` REAL, `dominant_species` TEXT, `invasive_species_present` INTEGER, `invasive_species_names` TEXT, `dbh_cm` REAL, `ndvi_observation` TEXT, `vegetation_disturbance` TEXT, PRIMARY KEY(`survey_id`), FOREIGN KEY(`survey_id`) REFERENCES `survey_entries`(`survey_id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "surveyId",
+            "columnName": "survey_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "vegetationType",
+            "columnName": "vegetation_type",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "canopyCoverPct",
+            "columnName": "canopy_cover_pct",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "canopyHeightM",
+            "columnName": "canopy_height_m",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "dominantSpecies",
+            "columnName": "dominant_species",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "invasiveSpeciesPresent",
+            "columnName": "invasive_species_present",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "invasiveSpeciesNames",
+            "columnName": "invasive_species_names",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "dbhCm",
+            "columnName": "dbh_cm",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "ndviObservation",
+            "columnName": "ndvi_observation",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "vegetationDisturbance",
+            "columnName": "vegetation_disturbance",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "survey_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_vegetation_data_survey_id",
+            "unique": false,
+            "columnNames": [
+              "survey_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_vegetation_data_survey_id` ON `${TABLE_NAME}` (`survey_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "survey_entries",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "survey_id"
+            ],
+            "referencedColumns": [
+              "survey_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "soil_data",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`survey_id` TEXT NOT NULL, `soil_type` TEXT, `soil_texture` TEXT, `soil_color_munsell` TEXT, `erosion_level` TEXT, `erosion_type` TEXT, `exposed_roots` INTEGER, `compaction_signs` INTEGER, `disturbance_signs` INTEGER, PRIMARY KEY(`survey_id`), FOREIGN KEY(`survey_id`) REFERENCES `survey_entries`(`survey_id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "surveyId",
+            "columnName": "survey_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "soilType",
+            "columnName": "soil_type",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "soilTexture",
+            "columnName": "soil_texture",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "soilColorMunsell",
+            "columnName": "soil_color_munsell",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "erosionLevel",
+            "columnName": "erosion_level",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "erosionType",
+            "columnName": "erosion_type",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "exposedRoots",
+            "columnName": "exposed_roots",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "compactionSigns",
+            "columnName": "compaction_signs",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "disturbanceSigns",
+            "columnName": "disturbance_signs",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "survey_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_soil_data_survey_id",
+            "unique": false,
+            "columnNames": [
+              "survey_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_soil_data_survey_id` ON `${TABLE_NAME}` (`survey_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "survey_entries",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "survey_id"
+            ],
+            "referencedColumns": [
+              "survey_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "water_data",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`survey_id` TEXT NOT NULL, `water_body_present` INTEGER, `water_body_type` TEXT, `water_clarity` TEXT, `flooding_signs` INTEGER, `waterlogging_level` TEXT, `distance_to_drainage_m` REAL, `flow_direction` TEXT, PRIMARY KEY(`survey_id`), FOREIGN KEY(`survey_id`) REFERENCES `survey_entries`(`survey_id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "surveyId",
+            "columnName": "survey_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "waterBodyPresent",
+            "columnName": "water_body_present",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "waterBodyType",
+            "columnName": "water_body_type",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "waterClarity",
+            "columnName": "water_clarity",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "floodingSigns",
+            "columnName": "flooding_signs",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "waterloggingLevel",
+            "columnName": "waterlogging_level",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "distanceToDrainageM",
+            "columnName": "distance_to_drainage_m",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "flowDirection",
+            "columnName": "flow_direction",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "survey_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_water_data_survey_id",
+            "unique": false,
+            "columnNames": [
+              "survey_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_water_data_survey_id` ON `${TABLE_NAME}` (`survey_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "survey_entries",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "survey_id"
+            ],
+            "referencedColumns": [
+              "survey_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "biodiversity_data",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`survey_id` TEXT NOT NULL, `wildlife_sighting` INTEGER, `wildlife_species` TEXT, `wildlife_evidence_type` TEXT, `sensitive_habitat_present` INTEGER, `sensitive_habitat_type` TEXT, `protected_species_flagged` INTEGER, `protected_species_notes` TEXT, PRIMARY KEY(`survey_id`), FOREIGN KEY(`survey_id`) REFERENCES `survey_entries`(`survey_id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "surveyId",
+            "columnName": "survey_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "wildlifeSighting",
+            "columnName": "wildlife_sighting",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "wildlifeSpecies",
+            "columnName": "wildlife_species",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "wildlifeEvidenceType",
+            "columnName": "wildlife_evidence_type",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "sensitiveHabitatPresent",
+            "columnName": "sensitive_habitat_present",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "sensitiveHabitatType",
+            "columnName": "sensitive_habitat_type",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "protectedSpeciesFlagged",
+            "columnName": "protected_species_flagged",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "protectedSpeciesNotes",
+            "columnName": "protected_species_notes",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "survey_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_biodiversity_data_survey_id",
+            "unique": false,
+            "columnNames": [
+              "survey_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_biodiversity_data_survey_id` ON `${TABLE_NAME}` (`survey_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "survey_entries",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "survey_id"
+            ],
+            "referencedColumns": [
+              "survey_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "hazard_data",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`survey_id` TEXT NOT NULL, `landslide_risk` TEXT, `erosion_risk` TEXT, `flood_risk` TEXT, `contamination_signs` INTEGER, `contamination_type` TEXT, `proximity_to_industrial_m` REAL, PRIMARY KEY(`survey_id`), FOREIGN KEY(`survey_id`) REFERENCES `survey_entries`(`survey_id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "surveyId",
+            "columnName": "survey_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "landslideRisk",
+            "columnName": "landslide_risk",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "erosionRisk",
+            "columnName": "erosion_risk",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "floodRisk",
+            "columnName": "flood_risk",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "contaminationSigns",
+            "columnName": "contamination_signs",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "contaminationType",
+            "columnName": "contamination_type",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "proximityToIndustrialM",
+            "columnName": "proximity_to_industrial_m",
+            "affinity": "REAL"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "survey_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_hazard_data_survey_id",
+            "unique": false,
+            "columnNames": [
+              "survey_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_hazard_data_survey_id` ON `${TABLE_NAME}` (`survey_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "survey_entries",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "survey_id"
+            ],
+            "referencedColumns": [
+              "survey_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "infrastructure_data",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`survey_id` TEXT NOT NULL, `roads_or_tracks_present` INTEGER, `road_condition` TEXT, `structures_present` INTEGER, `utilities_present` INTEGER, `land_disturbance_history` TEXT, `illegal_dumping_present` INTEGER, `pollution_points` TEXT, PRIMARY KEY(`survey_id`), FOREIGN KEY(`survey_id`) REFERENCES `survey_entries`(`survey_id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "surveyId",
+            "columnName": "survey_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "roadsOrTracksPresent",
+            "columnName": "roads_or_tracks_present",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "roadCondition",
+            "columnName": "road_condition",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "structuresPresent",
+            "columnName": "structures_present",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "utilitiesPresent",
+            "columnName": "utilities_present",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "landDisturbanceHistory",
+            "columnName": "land_disturbance_history",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "illegalDumpingPresent",
+            "columnName": "illegal_dumping_present",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "pollutionPoints",
+            "columnName": "pollution_points",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "survey_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_infrastructure_data_survey_id",
+            "unique": false,
+            "columnNames": [
+              "survey_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_infrastructure_data_survey_id` ON `${TABLE_NAME}` (`survey_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "survey_entries",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "survey_id"
+            ],
+            "referencedColumns": [
+              "survey_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "remote_keys",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`key_id` TEXT NOT NULL, `next_page` INTEGER, `current_page` INTEGER, `created_at` INTEGER NOT NULL, PRIMARY KEY(`key_id`))",
+        "fields": [
+          {
+            "fieldPath": "keyId",
+            "columnName": "key_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nextPage",
+            "columnName": "next_page",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "currentPage",
+            "columnName": "current_page",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "key_id"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '11b643054a2235985b79c5d33dfa9bfb')"
+    ]
+  }
+}

@@ -2,7 +2,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Internet permission for API calls -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
     <application
+        android:name=".CanopyApp"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -10,16 +15,30 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.CanopyNativeAndroid">
+        android:theme="@style/Theme.CanopyNativeAndroid"
+        android:usesCleartextTraffic="true"
+        tools:targetApi="31">
+
+        <!-- Splash Activity (Launcher) -->
         <activity
-            android:name=".MainActivity"
-            android:exported="true">
+            android:name=".views.activities.SplashActivity"
+            android:exported="true"
+            android:theme="@style/Theme.CanopyNativeAndroid.Splash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Auth Activities -->
+        <activity android:name=".views.activities.LoginActivity" />
+        <activity android:name=".views.activities.RegisterActivity" />
+
+        <!-- Main Activities -->
+        <activity android:name=".views.activities.MainActivity" />
+        <activity android:name=".views.activities.SurveyDetailActivity" />
+        <activity android:name=".views.activities.CreateSurveyActivity" />
+
     </application>
 
 </manifest>

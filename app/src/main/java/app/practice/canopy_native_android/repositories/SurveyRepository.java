@@ -7,6 +7,7 @@ import android.os.Looper;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.paging.ExperimentalPagingApi;
 import androidx.paging.Pager;
 import androidx.paging.PagingConfig;
 import androidx.paging.PagingData;
@@ -33,6 +34,7 @@ import app.practice.canopy_native_android.database.AppDatabase;
 import app.practice.canopy_native_android.database.dao.BiodiversityDao;
 import app.practice.canopy_native_android.database.dao.HazardDao;
 import app.practice.canopy_native_android.database.dao.InfrastructureDao;
+import app.practice.canopy_native_android.database.dao.RemoteKeyDao;
 import app.practice.canopy_native_android.database.dao.SoilDao;
 import app.practice.canopy_native_android.database.dao.SurveyDao;
 import app.practice.canopy_native_android.database.dao.TopographicDao;
@@ -47,22 +49,28 @@ import app.practice.canopy_native_android.database.entities.TopographicEntity;
 import app.practice.canopy_native_android.database.entities.VegetationEntity;
 import app.practice.canopy_native_android.database.entities.WaterEntity;
 import app.practice.canopy_native_android.models.dto.ErrorResponse;
-import app.practice.canopy_native_android.models.dto.SurveyListResponse;
 import app.practice.canopy_native_android.models.dto.SurveyResponse;
 import app.practice.canopy_native_android.utils.Constants;
 import app.practice.canopy_native_android.utils.Resource;
-import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-// TODO: modularize this code
-
-/// Repository for survey operations
-/// Handles CRUD operations with offline-first sync support
+/**
+ * Repository for survey operations.
+ * Handles CRUD operations with offline-first sync support.
+ *
+ * Key features:
+ * - Infinite scrolling via RemoteMediator (fetches pages as user scrolls)
+ * - Offline-first (shows cached data immediately, syncs when online)
+ * - Local-first creates (saves locally with pending status, syncs later)
+ */
 public class SurveyRepository {
 
+    private final Context context;
+    private final AppDatabase database;
     private final SurveyApi surveyApi;
+
     private final SurveyDao surveyDao;
     private final TopographicDao topographicDao;
     private final VegetationDao vegetationDao;
@@ -71,75 +79,134 @@ public class SurveyRepository {
     private final BiodiversityDao biodiversityDao;
     private final HazardDao hazardDao;
     private final InfrastructureDao infrastructureDao;
+    private final RemoteKeyDao remoteKeyDao;
+
+    private final SurveyDatabaseHelper dbHelper;
 
     private final ExecutorService executor;
     private final Handler mainHandler;
     private final Gson gson;
 
     public SurveyRepository(Context context) {
-        AppDatabase db = AppDatabase.getInstance(context);
+        this.context = context.getApplicationContext();
+        this.database = AppDatabase.getInstance(context);
         this.surveyApi = ApiClient.getInstance(context).getSurveyApi();
-        this.surveyDao = db.surveyDao();
-        this.topographicDao = db.topographicDao();
-        this.vegetationDao = db.vegetationDao();
-        this.soilDao = db.soilDao();
-        this.waterDao = db.waterDao();
-        this.biodiversityDao = db.biodiversityDao();
-        this.hazardDao = db.hazardDao();
-        this.infrastructureDao = db.infrastructureDao();
+
+        this.surveyDao = database.surveyDao();
+        this.topographicDao = database.topographicDao();
+        this.vegetationDao = database.vegetationDao();
+        this.soilDao = database.soilDao();
+        this.waterDao = database.waterDao();
+        this.biodiversityDao = database.biodiversityDao();
+        this.hazardDao = database.hazardDao();
+        this.infrastructureDao = database.infrastructureDao();
+        this.remoteKeyDao = database.remoteKeyDao();
+
+        this.dbHelper = new SurveyDatabaseHelper(database);
 
         this.executor = Executors.newFixedThreadPool(4);
         this.mainHandler = new Handler(Looper.getMainLooper());
         this.gson = new Gson();
     }
 
-    // ---- paged queries
+    // ==================== PAGED QUERIES WITH INFINITE SCROLL ====================
 
-    // this observes the local database - call refreshSurveys() to fetch from API
+    /**
+     * Get all surveys with infinite scrolling support.
+     *
+     * How it works:
+     * 1. Initial load: Shows cached Room data immediately
+     * 2. RemoteMediator checks if refresh needed (cache age > 1 hour)
+     * 3. If refresh needed: Fetches page 1 from API, clears old synced data, saves new data
+     * 4. User scrolls to end: RemoteMediator fetches next page
+     * 5. Offline: Shows cached data, no network errors shown to user
+     *
+     * @return LiveData of PagingData that automatically loads more as user scrolls
+     */
+    @ExperimentalPagingApi
     public LiveData<PagingData<SurveyEntity>> getSurveysPaged() {
         return PagingLiveData.getLiveData(
-            new Pager<>(
-                new PagingConfig(
-                    Constants.PAGE_SIZE,
-                        Constants.PAGE_SIZE / 2,  // prefetchDistance
-                        false,  // enablePlaceholders
-                        Constants.PAGE_SIZE * 3   // initialLoadSize
-                    ),
-                    surveyDao::getSurveysPaged
-            )
-        );
-    }
-
-    // retrieve surveys with filtering and paging
-    public LiveData<PagingData<SurveyEntity>> getSurveysFilteredPaged(SurveyFilter filter) {
-        return PagingLiveData.getLiveData(
-            new Pager<>(
-                new PagingConfig(
-                    Constants.PAGE_SIZE,
-                    Constants.PAGE_SIZE / 2,
-                    false,
-                    Constants.PAGE_SIZE * 3
-                    ),
-                    () -> surveyDao.getSurveysFilteredPaged(buildFilterQuery(filter))
+                new Pager<>(
+                        new PagingConfig(
+                                /* pageSize = */ Constants.PAGE_SIZE,
+                                /* prefetchDistance = */ Constants.PAGE_SIZE / 2,
+                                /* enablePlaceholders = */ false,
+                                /* initialLoadSize = */ Constants.PAGE_SIZE * 2,
+                                /* maxSize = */ Constants.PAGE_SIZE * 10
+                        ),
+                        /* initialKey = */ null,
+                        /* remoteMediator = */ new SurveyRemoteMediator(surveyApi, database),
+                        /* pagingSourceFactory = */ () -> surveyDao.getSurveysPaged()
                 )
         );
     }
 
-    public LiveData<PagingData<SurveyEntity>> searchSurveysPaged(String query) {
+    /**
+     * Get surveys for a specific observer with infinite scrolling.
+     * Uses a filtered RemoteMediator.
+     */
+    @ExperimentalPagingApi
+    public LiveData<PagingData<SurveyEntity>> getMySurveysPaged(String observerId) {
         return PagingLiveData.getLiveData(
-            new Pager<>(
-                new PagingConfig(
-                    Constants.PAGE_SIZE,
-                    Constants.PAGE_SIZE / 2,
-                    false,
-                    Constants.PAGE_SIZE * 3
-                ),
-                () -> surveyDao.searchSurveysPaged(query)
-            )
+                new Pager<>(
+                        new PagingConfig(
+                                Constants.PAGE_SIZE,
+                                Constants.PAGE_SIZE / 2,
+                                false,
+                                Constants.PAGE_SIZE * 2
+                        ),
+                        null,
+                        new SurveyRemoteMediatorFiltered(surveyApi, database, observerId),
+                        () -> surveyDao.getSurveysByObserverPaged(observerId)
+                )
         );
     }
 
-    // dynamic SQL queries for filtering
+    /**
+     * Get filtered surveys (local only, no RemoteMediator).
+     *
+     * For filtered views, we only paginate cached local data.
+     * User should use pull-to-refresh to fetch fresh data from server.
+     *
+     * Use cases:
+     * - Search by text
+     * - Filter by survey type, weather, date range
+     * - Combined filters
+     */
+    public LiveData<PagingData<SurveyEntity>> getSurveysFilteredPaged(SurveyFilter filter) {
+        return PagingLiveData.getLiveData(
+                new Pager<>(
+                        new PagingConfig(
+                                Constants.PAGE_SIZE,
+                                Constants.PAGE_SIZE / 2,
+                                false,
+                                Constants.PAGE_SIZE * 2
+                        ),
+                        () -> surveyDao.getSurveysFilteredPaged(buildFilterQuery(filter))
+                )
+        );
+    }
+
+    /**
+     * Search surveys with paging (local only).
+     */
+    public LiveData<PagingData<SurveyEntity>> searchSurveysPaged(String query) {
+        return PagingLiveData.getLiveData(
+                new Pager<>(
+                        new PagingConfig(
+                                Constants.PAGE_SIZE,
+                                Constants.PAGE_SIZE / 2,
+                                false,
+                                Constants.PAGE_SIZE * 2
+                        ),
+                        () -> surveyDao.searchSurveysPaged(query)
+                )
+        );
+    }
+
+    /**
+     * Build dynamic SQL query for filtering.
+     */
     private SupportSQLiteQuery buildFilterQuery(SurveyFilter filter) {
         StringBuilder queryBuilder = new StringBuilder("SELECT * FROM survey_entries WHERE 1=1");
         List<Object> args = new ArrayList<>();
@@ -178,60 +245,61 @@ public class SurveyRepository {
             args.add(searchPattern);
         }
 
-        queryBuilder.append(" ORDER BY survey_date DESC, survey_time DESC");
+        queryBuilder.append(" ORDER BY remote_order ASC");
 
         return new SimpleSQLiteQuery(queryBuilder.toString(), args.toArray());
     }
 
-    // --- fetch from api
+    // ==================== MANUAL REFRESH ====================
 
-    // refresh surveys from API and save to local database
-    // fetches multiple pages until all the data is loaded
-    public LiveData<Resource<Integer>> refreshSurveys() {
-        MutableLiveData<Resource<Integer>> result = new MutableLiveData<>();
+    /**
+     * Force refresh from API (clears remote keys to trigger full refresh).
+     * Called on pull-to-refresh.
+     */
+    public LiveData<Resource<Boolean>> forceRefresh() {
+        MutableLiveData<Resource<Boolean>> result = new MutableLiveData<>();
         result.setValue(Resource.loading());
 
-        fetchAllPages(1, 0, result);
+        executor.execute(() -> {
+            try {
+                // Clear remote keys to force RemoteMediator to refresh
+                remoteKeyDao.deleteAll();
+                mainHandler.post(() -> result.setValue(Resource.success(true)));
+            } catch (Exception e) {
+                mainHandler.post(() -> result.setValue(Resource.error(e.getMessage())));
+            }
+        });
 
         return result;
     }
 
-    private void fetchAllPages(int page, int totalFetched, MutableLiveData<Resource<Integer>> result) {
-        surveyApi.getSurveys(page, Constants.PAGE_SIZE).enqueue(new Callback<SurveyListResponse>() {
-            @Override
-            public void onResponse(@NonNull Call<SurveyListResponse> call,
-                                   @NonNull Response<SurveyListResponse> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    SurveyListResponse listResponse = response.body();
-                    List<SurveyResponse> surveys = listResponse.getResults();
+    // ==================== CLEAR CACHE (DEBUG) ====================
 
-                    executor.execute(() -> {
-                        for (SurveyResponse surveyResponse : surveys) {
-                            saveSurveyFromResponse(surveyResponse);
-                        }
+    /**
+     * Clear all cached data from the database (surveys, sections, remote keys).
+     * Used for debugging purposes.
+     */
+    public LiveData<Resource<Boolean>> clearCache() {
+        MutableLiveData<Resource<Boolean>> result = new MutableLiveData<>();
+        result.setValue(Resource.loading());
 
-                        int newTotal = totalFetched + surveys.size();
-
-                        if (listResponse.hasNext()) {
-                            mainHandler.post(() -> fetchAllPages(page + 1, newTotal, result));
-                        } else {
-                            mainHandler.post(() -> result.setValue(Resource.success(newTotal)));
-                        }
-                    });
-                } else {
-                    String errorMessage = parseError(response);
-                    result.setValue(Resource.error(errorMessage, totalFetched));
-                }
-            }
-
-            @Override
-            public void onFailure(@NonNull Call<SurveyListResponse> call, @NonNull Throwable t) {
-                result.setValue(Resource.error("Network error: " + t.getMessage(), totalFetched));
+        executor.execute(() -> {
+            try {
+                database.clearAllTables();
+                mainHandler.post(() -> result.setValue(Resource.success(true)));
+            } catch (Exception e) {
+                mainHandler.post(() -> result.setValue(Resource.error(e.getMessage())));
             }
         });
+
+        return result;
     }
 
-    // fetch single survey by id
+    // ==================== SINGLE SURVEY FETCH ====================
+
+    /**
+     * Fetch a single survey by ID from API.
+     */
     public LiveData<Resource<SurveyEntity>> fetchSurvey(String surveyId) {
         MutableLiveData<Resource<SurveyEntity>> result = new MutableLiveData<>();
         result.setValue(Resource.loading());
@@ -260,12 +328,18 @@ public class SurveyRepository {
         return result;
     }
 
-    // --- local queries (from local db)
+    // ==================== LOCAL QUERIES ====================
 
+    /**
+     * Get survey by ID from local database.
+     */
     public LiveData<SurveyEntity> getSurveyById(String surveyId) {
         return surveyDao.getSurveyById(surveyId);
     }
 
+    /**
+     * Get all section data for a survey.
+     */
     public LiveData<TopographicEntity> getTopographicData(String surveyId) {
         return topographicDao.getBySurveyId(surveyId);
     }
@@ -294,7 +368,9 @@ public class SurveyRepository {
         return infrastructureDao.getBySurveyId(surveyId);
     }
 
-    // get distinct values for filter dropdowns
+    /**
+     * Get distinct values for filter dropdowns.
+     */
     public LiveData<List<String>> getDistinctSurveyTypes() {
         return surveyDao.getDistinctSurveyTypes();
     }
@@ -311,11 +387,12 @@ public class SurveyRepository {
         return surveyDao.getCountBySyncStatus(Constants.SYNC_PENDING);
     }
 
-    // --- create
+    // ==================== CREATE ====================
 
-
-    // new survey locally with pending sync status as default
-    // will return generated survey id
+    /**
+     * Create a new survey locally with pending sync status.
+     * Returns the generated survey ID.
+     */
     public LiveData<Resource<String>> createSurvey(SurveyEntity survey,
                                                    TopographicEntity topographic,
                                                    VegetationEntity vegetation,
@@ -329,52 +406,56 @@ public class SurveyRepository {
 
         executor.execute(() -> {
             try {
-                if (survey.getSurveyId().isEmpty()) {
+                // Generate UUID if not set
+                if (survey.getSurveyId() == null || survey.getSurveyId().isEmpty()) {
                     survey.setSurveyId(UUID.randomUUID().toString());
                 }
 
-                // set timestamps
+                // Set timestamps
                 String now = getCurrentTimestamp();
                 survey.setCreatedAt(now);
                 survey.setUpdatedAt(now);
                 survey.setSyncStatus(Constants.SYNC_PENDING);
 
-                // save survey entry
-                surveyDao.insert(survey);
+                // Save in transaction
+                database.runInTransaction(() -> {
+                    // Save survey entry
+                    surveyDao.insert(survey);
 
-                // save sections with survey id on each
-                String surveyId = survey.getSurveyId();
+                    // Save sections (set survey_id on each)
+                    String surveyId = survey.getSurveyId();
 
-                if (topographic != null) {
-                    topographic.setSurveyId(surveyId);
-                    topographicDao.insert(topographic);
-                }
-                if (vegetation != null) {
-                    vegetation.setSurveyId(surveyId);
-                    vegetationDao.insert(vegetation);
-                }
-                if (soil != null) {
-                    soil.setSurveyId(surveyId);
-                    soilDao.insert(soil);
-                }
-                if (water != null) {
-                    water.setSurveyId(surveyId);
-                    waterDao.insert(water);
-                }
-                if (biodiversity != null) {
-                    biodiversity.setSurveyId(surveyId);
-                    biodiversityDao.insert(biodiversity);
-                }
-                if (hazard != null) {
-                    hazard.setSurveyId(surveyId);
-                    hazardDao.insert(hazard);
-                }
-                if (infrastructure != null) {
-                    infrastructure.setSurveyId(surveyId);
-                    infrastructureDao.insert(infrastructure);
-                }
+                    if (topographic != null) {
+                        topographic.setSurveyId(surveyId);
+                        topographicDao.insert(topographic);
+                    }
+                    if (vegetation != null) {
+                        vegetation.setSurveyId(surveyId);
+                        vegetationDao.insert(vegetation);
+                    }
+                    if (soil != null) {
+                        soil.setSurveyId(surveyId);
+                        soilDao.insert(soil);
+                    }
+                    if (water != null) {
+                        water.setSurveyId(surveyId);
+                        waterDao.insert(water);
+                    }
+                    if (biodiversity != null) {
+                        biodiversity.setSurveyId(surveyId);
+                        biodiversityDao.insert(biodiversity);
+                    }
+                    if (hazard != null) {
+                        hazard.setSurveyId(surveyId);
+                        hazardDao.insert(hazard);
+                    }
+                    if (infrastructure != null) {
+                        infrastructure.setSurveyId(surveyId);
+                        infrastructureDao.insert(infrastructure);
+                    }
+                });
 
-                mainHandler.post(() -> result.setValue(Resource.success(surveyId)));
+                mainHandler.post(() -> result.setValue(Resource.success(survey.getSurveyId())));
 
             } catch (Exception e) {
                 mainHandler.post(() -> result.setValue(Resource.error("Failed to create survey: " + e.getMessage())));
@@ -384,9 +465,11 @@ public class SurveyRepository {
         return result;
     }
 
-    // --- update
+    // ==================== UPDATE ====================
 
-    // updates an existing survey locally with pending sync status
+    /**
+     * Update an existing survey locally with pending sync status.
+     */
     public LiveData<Resource<Boolean>> updateSurvey(SurveyEntity survey,
                                                     TopographicEntity topographic,
                                                     VegetationEntity vegetation,
@@ -395,70 +478,71 @@ public class SurveyRepository {
                                                     BiodiversityEntity biodiversity,
                                                     HazardEntity hazard,
                                                     InfrastructureEntity infrastructure) {
-
         MutableLiveData<Resource<Boolean>> result = new MutableLiveData<>();
         result.setValue(Resource.loading());
 
         executor.execute(() -> {
             try {
-                // update timestamp and sync status
+                // Update timestamp and sync status
                 survey.setUpdatedAt(getCurrentTimestamp());
                 survey.setSyncStatus(Constants.SYNC_PENDING);
 
-                // update survey entry
-                surveyDao.update(survey);
+                database.runInTransaction(() -> {
+                    // Update survey entry
+                    surveyDao.update(survey);
 
-                String surveyId = survey.getSurveyId();
+                    String surveyId = survey.getSurveyId();
 
-                // update sections
-                if (topographic != null) {
-                    topographic.setSurveyId(surveyId);
-                    topographicDao.insert(topographic);
-                } else {
-                    topographicDao.deleteBySurveyId(surveyId);
-                }
+                    // Update sections (use insert with REPLACE strategy)
+                    if (topographic != null) {
+                        topographic.setSurveyId(surveyId);
+                        topographicDao.insert(topographic);
+                    } else {
+                        topographicDao.deleteBySurveyId(surveyId);
+                    }
 
-                if (vegetation != null) {
-                    vegetation.setSurveyId(surveyId);
-                    vegetationDao.insert(vegetation);
-                } else {
-                    vegetationDao.deleteBySurveyId(surveyId);
-                }
+                    if (vegetation != null) {
+                        vegetation.setSurveyId(surveyId);
+                        vegetationDao.insert(vegetation);
+                    } else {
+                        vegetationDao.deleteBySurveyId(surveyId);
+                    }
 
-                if (soil != null) {
-                    soil.setSurveyId(surveyId);
-                    soilDao.insert(soil);
-                } else {
-                    soilDao.deleteBySurveyId(surveyId);
-                }
+                    if (soil != null) {
+                        soil.setSurveyId(surveyId);
+                        soilDao.insert(soil);
+                    } else {
+                        soilDao.deleteBySurveyId(surveyId);
+                    }
 
-                if (water != null) {
-                    water.setSurveyId(surveyId);
-                    waterDao.insert(water);
-                } else {
-                    waterDao.deleteBySurveyId(surveyId);
-                }
+                    if (water != null) {
+                        water.setSurveyId(surveyId);
+                        waterDao.insert(water);
+                    } else {
+                        waterDao.deleteBySurveyId(surveyId);
+                    }
 
-                if (biodiversity != null) {
-                    biodiversity.setSurveyId(surveyId);
-                    biodiversityDao.insert(biodiversity);
-                } else {
-                    biodiversityDao.deleteBySurveyId(surveyId);
-                }
+                    if (biodiversity != null) {
+                        biodiversity.setSurveyId(surveyId);
+                        biodiversityDao.insert(biodiversity);
+                    } else {
+                        biodiversityDao.deleteBySurveyId(surveyId);
+                    }
 
-                if (hazard != null) {
-                    hazard.setSurveyId(surveyId);
-                    hazardDao.insert(hazard);
-                } else {
-                    hazardDao.deleteBySurveyId(surveyId);
-                }
+                    if (hazard != null) {
+                        hazard.setSurveyId(surveyId);
+                        hazardDao.insert(hazard);
+                    } else {
+                        hazardDao.deleteBySurveyId(surveyId);
+                    }
 
-                if (infrastructure != null) {
-                    infrastructure.setSurveyId(surveyId);
-                    infrastructureDao.insert(infrastructure);
-                } else {
-                    infrastructureDao.deleteBySurveyId(surveyId);
-                }
+                    if (infrastructure != null) {
+                        infrastructure.setSurveyId(surveyId);
+                        infrastructureDao.insert(infrastructure);
+                    } else {
+                        infrastructureDao.deleteBySurveyId(surveyId);
+                    }
+                });
 
                 mainHandler.post(() -> result.setValue(Resource.success(true)));
 
@@ -470,29 +554,31 @@ public class SurveyRepository {
         return result;
     }
 
-    // --- delete
+    // ==================== DELETE ====================
 
-    // delete survey locally first (optimistic), then sync delete to server
+    /**
+     * Delete survey locally first (optimistic), then sync delete to server.
+     */
     public LiveData<Resource<Boolean>> deleteSurvey(String surveyId) {
         MutableLiveData<Resource<Boolean>> result = new MutableLiveData<>();
         result.setValue(Resource.loading());
 
-        // delete operation, cascade will delete sections
+        // Delete locally first (cascade will delete sections)
         executor.execute(() -> {
             surveyDao.deleteById(surveyId);
 
-            // attempt delete on server
+            // Then try to delete on server
             mainHandler.post(() -> {
                 surveyApi.deleteSurvey(surveyId).enqueue(new Callback<Void>() {
                     @Override
                     public void onResponse(@NonNull Call<Void> call, @NonNull Response<Void> response) {
+                        // Success or 404 (already deleted) - both are fine
                         result.setValue(Resource.success(true));
                     }
 
                     @Override
                     public void onFailure(@NonNull Call<Void> call, @NonNull Throwable t) {
-                        // TODO: probably implement better delete mechanism
-                        // like soft delete survey items until confirmed delete on server
+                        // Still return success since local delete succeeded
                         result.setValue(Resource.success(true));
                     }
                 });
@@ -502,9 +588,11 @@ public class SurveyRepository {
         return result;
     }
 
-    // --- sync
+    // ==================== SYNC PENDING SURVEYS ====================
 
-    // sync all pending surveys to the server
+    /**
+     * Sync all pending surveys to the server.
+     */
     public LiveData<Resource<SyncResult>> syncPendingSurveys() {
         MutableLiveData<Resource<SyncResult>> result = new MutableLiveData<>();
         result.setValue(Resource.loading());
@@ -547,10 +635,13 @@ public class SurveyRepository {
         return result;
     }
 
-    // build API payload from local entities
+    /**
+     * Build API payload from local entities.
+     */
     private Map<String, Object> buildSurveyPayload(SurveyEntity survey) {
         Map<String, Object> payload = new HashMap<>();
 
+        // Metadata fields
         payload.put("survey_id", survey.getSurveyId());
         payload.put("observer_id", survey.getObserverId());
         payload.put("observer_name", survey.getObserverName());
@@ -565,7 +656,7 @@ public class SurveyRepository {
         payload.put("notes", survey.getNotes());
         payload.put("survey_type", survey.getSurveyType());
 
-        // parse JSON fields
+        // Parse JSON fields
         if (survey.getPhotos() != null) {
             payload.put("photos", gson.fromJson(survey.getPhotos(), List.class));
         }
@@ -573,6 +664,7 @@ public class SurveyRepository {
             payload.put("device_info", gson.fromJson(survey.getDeviceInfo(), Map.class));
         }
 
+        // Add sections
         String surveyId = survey.getSurveyId();
 
         TopographicEntity topo = topographicDao.getBySurveyIdSync(surveyId);
@@ -585,14 +677,14 @@ public class SurveyRepository {
             payload.put("vegetation", buildVegetationMap(veg));
         }
 
-        SoilEntity soil = soilDao.getBySurveyIdSync(surveyId);
-        if (soil != null) {
-            payload.put("soil", buildSoilMap(soil));
+        SoilEntity soilEntity = soilDao.getBySurveyIdSync(surveyId);
+        if (soilEntity != null) {
+            payload.put("soil", buildSoilMap(soilEntity));
         }
 
-        WaterEntity water = waterDao.getBySurveyIdSync(surveyId);
-        if (water != null) {
-            payload.put("water", buildWaterMap(water));
+        WaterEntity waterEntity = waterDao.getBySurveyIdSync(surveyId);
+        if (waterEntity != null) {
+            payload.put("water", buildWaterMap(waterEntity));
         }
 
         BiodiversityEntity bio = biodiversityDao.getBySurveyIdSync(surveyId);
@@ -600,9 +692,9 @@ public class SurveyRepository {
             payload.put("biodiversity", buildBiodiversityMap(bio));
         }
 
-        HazardEntity hazard = hazardDao.getBySurveyIdSync(surveyId);
-        if (hazard != null) {
-            payload.put("hazard", buildHazardMap(hazard));
+        HazardEntity hazardEntity = hazardDao.getBySurveyIdSync(surveyId);
+        if (hazardEntity != null) {
+            payload.put("hazard", buildHazardMap(hazardEntity));
         }
 
         InfrastructureEntity infra = infrastructureDao.getBySurveyIdSync(surveyId);
@@ -613,8 +705,7 @@ public class SurveyRepository {
         return payload;
     }
 
-    // --- section map builders
-
+    // Section map builders
     private Map<String, Object> buildTopographicMap(TopographicEntity e) {
         Map<String, Object> map = new HashMap<>();
         map.put("elevation_m", e.getElevationM());
@@ -707,52 +798,13 @@ public class SurveyRepository {
         return map;
     }
 
-    // --- helpers
+    // ==================== HELPERS ====================
 
-
-    // save survey and all sections from API response
+    /**
+     * Save survey and all sections from API response.
+     */
     private SurveyEntity saveSurveyFromResponse(SurveyResponse response) {
-        SurveyEntity entity = response.toSurveyEntity();
-        surveyDao.insert(entity);
-
-        String surveyId = entity.getSurveyId();
-
-        TopographicEntity topo = response.toTopographicEntity();
-        if (topo != null) {
-            topographicDao.insert(topo);
-        }
-
-        VegetationEntity veg = response.toVegetationEntity();
-        if (veg != null) {
-            vegetationDao.insert(veg);
-        }
-
-        SoilEntity soil = response.toSoilEntity();
-        if (soil != null) {
-            soilDao.insert(soil);
-        }
-
-        WaterEntity water = response.toWaterEntity();
-        if (water != null) {
-            waterDao.insert(water);
-        }
-
-        BiodiversityEntity bio = response.toBiodiversityEntity();
-        if (bio != null) {
-            biodiversityDao.insert(bio);
-        }
-
-        HazardEntity hazard = response.toHazardEntity();
-        if (hazard != null) {
-            hazardDao.insert(hazard);
-        }
-
-        InfrastructureEntity infra = response.toInfrastructureEntity();
-        if (infra != null) {
-            infrastructureDao.insert(infra);
-        }
-
-        return entity;
+        return dbHelper.saveSurveyWithSections(response);
     }
 
     private String getCurrentTimestamp() {
@@ -761,13 +813,10 @@ public class SurveyRepository {
     }
 
     private String parseError(Response<?> response) {
-
-        try (ResponseBody errorBody = response.errorBody()) {
-            if (errorBody != null) {
-                String errorJson = errorBody.string();
-                ErrorResponse errorResponse = new com.google.gson.Gson()
-                        .fromJson(errorJson, ErrorResponse.class);
-
+        try {
+            if (response.errorBody() != null) {
+                String errorJson = response.errorBody().string();
+                ErrorResponse errorResponse = gson.fromJson(errorJson, ErrorResponse.class);
                 if (errorResponse != null) {
                     return errorResponse.getDisplayMessage();
                 }
@@ -775,11 +824,14 @@ public class SurveyRepository {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
         return "Error: " + response.code();
     }
 
-    // filtered criteria for survey queries
+    // ==================== INNER CLASSES ====================
+
+    /**
+     * Filter criteria for survey queries.
+     */
     public static class SurveyFilter {
         private String surveyType;
         private String weatherCondition;
@@ -808,11 +860,11 @@ public class SurveyRepository {
 
         public boolean isEmpty() {
             return (surveyType == null || surveyType.isEmpty()) &&
-                (weatherCondition == null || weatherCondition.isEmpty()) &&
-                (observerId == null || observerId.isEmpty()) &&
-                (dateFrom == null || dateFrom.isEmpty()) &&
-                (dateTo == null || dateTo.isEmpty()) &&
-                (searchQuery == null || searchQuery.isEmpty());
+                    (weatherCondition == null || weatherCondition.isEmpty()) &&
+                    (observerId == null || observerId.isEmpty()) &&
+                    (dateFrom == null || dateFrom.isEmpty()) &&
+                    (dateTo == null || dateTo.isEmpty()) &&
+                    (searchQuery == null || searchQuery.isEmpty());
         }
 
         public void clear() {
@@ -825,6 +877,9 @@ public class SurveyRepository {
         }
     }
 
+    /**
+     * Result of sync operation.
+     */
     public static class SyncResult {
         public int total = 0;
         public int synced = 0;
@@ -834,5 +889,4 @@ public class SurveyRepository {
             return failed == 0 && synced == total;
         }
     }
-
 }

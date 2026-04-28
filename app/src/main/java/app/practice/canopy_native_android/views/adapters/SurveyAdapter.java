@@ -39,10 +39,10 @@ public class SurveyAdapter extends PagingDataAdapter<SurveyEntity, SurveyAdapter
 
             @Override
             public boolean areContentsTheSame(@NonNull SurveyEntity oldItem, @NonNull SurveyEntity newItem) {
-                // compare all relevant fields
+                // compare all relevant fields (null-safe)
                 return oldItem.getSurveyId().equals(newItem.getSurveyId()) &&
-                        oldItem.getUpdatedAt().equals(newItem.getUpdatedAt()) &&
-                        oldItem.getSyncStatus().equals(newItem.getSyncStatus());
+                        java.util.Objects.equals(oldItem.getUpdatedAt(), newItem.getUpdatedAt()) &&
+                        java.util.Objects.equals(oldItem.getSyncStatus(), newItem.getSyncStatus());
             }
         };
 
@@ -56,6 +56,7 @@ public class SurveyAdapter extends PagingDataAdapter<SurveyEntity, SurveyAdapter
         );
         return new SurveyViewHolder(binding);
     }
+
 
     @Override
     public void onBindViewHolder(@NonNull SurveyViewHolder holder, int position) {
@@ -149,7 +150,7 @@ public class SurveyAdapter extends PagingDataAdapter<SurveyEntity, SurveyAdapter
         }
 
         private String formatTime(String time) {
-            // Convert "HH:mm:ss" to "HH:mm"
+            // convert "HH:mm:ss" to "HH:mm"
             if (time != null && time.length() >= 5) {
                 return time.substring(0, 5);
             }

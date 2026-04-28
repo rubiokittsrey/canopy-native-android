@@ -75,10 +75,10 @@ public interface SurveyDao {
 
     // -- paging
 
-    @Query("SELECT * FROM survey_entries ORDER BY survey_date DESC, survey_time DESC")
+    @Query("SELECT * FROM survey_entries ORDER BY remote_order ASC")
     PagingSource<Integer, SurveyEntity> getSurveysPaged();
 
-    @Query("SELECT * FROM survey_entries WHERE observer_id = :observerId ORDER BY survey_date DESC, survey_time DESC")
+    @Query("SELECT * FROM survey_entries WHERE observer_id = :observerId ORDER BY remote_order ASC")
     PagingSource<Integer, SurveyEntity> getSurveysByObserverPaged(String observerId);
 
     // -- filtered paging
@@ -92,7 +92,7 @@ public interface SurveyDao {
             "organization LIKE '%' || :searchQuery || '%' OR " +
             "survey_type LIKE '%' || :searchQuery || '%' OR " +
             "notes LIKE '%' || :searchQuery || '%') " +
-            "ORDER BY survey_date DESC, survey_time DESC")
+            "ORDER BY remote_order ASC")
     PagingSource<Integer, SurveyEntity> searchSurveysPaged(String searchQuery);
 
     // -- counts

@@ -72,6 +72,11 @@ public class SurveyEntity {
     @ColumnInfo(name = "device_info")
     private String deviceInfo;
 
+    // Ordering field for paging: preserves the API's page order.
+    // Locally-created surveys default to MAX_VALUE so they appear at the bottom.
+    @ColumnInfo(name = "remote_order", defaultValue = "2147483647")
+    private int remoteOrder = Integer.MAX_VALUE;
+
     // app-side only field for offline sync
     @NonNull
     @ColumnInfo(name = "sync_status")
@@ -172,4 +177,7 @@ public class SurveyEntity {
     @NonNull
     public String getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(@NonNull String updatedAt) { this.updatedAt = updatedAt; }
+
+    public int getRemoteOrder() { return remoteOrder; }
+    public void setRemoteOrder(int remoteOrder) { this.remoteOrder = remoteOrder; }
 }

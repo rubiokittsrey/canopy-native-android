@@ -18,7 +18,7 @@ public class Resource<T> {
     @NonNull
     private final Status status;
 
-    @NonNull
+    @Nullable
     private final T data;
 
     @Nullable

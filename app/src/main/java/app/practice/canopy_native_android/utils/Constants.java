@@ -5,7 +5,7 @@ import okhttp3.logging.HttpLoggingInterceptor;
 public final class Constants {
     private Constants() {}
 
-    public static final String BASE_URL = "https://10.0.2.2:8000"; // emulator localhost
+    public static final String BASE_URL = "http://192.168.0.110:8000"; // emulator localhost
 
     // shared prefs
     public static final String PREFS_NAME = "canopy_prefs";
@@ -14,7 +14,7 @@ public final class Constants {
     public static final String KEY_USER_ID = "user_id";
 
     // pagination
-    public static final int PAGE_SIZE = 20;
+    public static final int PAGE_SIZE = 5;
 
     // sync status
     public static final String SYNC_PENDING = "pending";

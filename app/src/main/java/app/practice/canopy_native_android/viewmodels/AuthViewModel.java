@@ -7,6 +7,10 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Observer;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import app.practice.canopy_native_android.database.entities.UserEntity;
 import app.practice.canopy_native_android.repositories.AuthRepository;
@@ -27,6 +31,9 @@ public class AuthViewModel extends AndroidViewModel {
     // ui state
     private final MutableLiveData<Boolean> isLoading = new MutableLiveData<>(false);
 
+    // Track observers for cleanup
+    private final List<Runnable> observerCleanups = new ArrayList<>();
+
     public AuthViewModel(@NonNull Application application) {
         super(application);
         authRepository = new AuthRepository(application);
@@ -41,12 +48,10 @@ public class AuthViewModel extends AndroidViewModel {
 
     public void login(String email, String password) {
         isLoading.setValue(true);
-
-        LiveData<Resource<UserEntity>> source = authRepository.login(email, password);
         loginResult.setValue(Resource.loading());
 
-        // observe result and forward results
-        source.observeForever(resource -> {
+        LiveData<Resource<UserEntity>> source = authRepository.login(email, password);
+        observeUntilComplete(source, resource -> {
             loginResult.setValue(resource);
 
             if (resource.getStatus() != Resource.Status.LOADING) {
@@ -62,13 +67,12 @@ public class AuthViewModel extends AndroidViewModel {
     public void register(String email, String password, String fullName,
                          String organization, String phoneNumber) {
         isLoading.setValue(true);
+        registerResult.setValue(Resource.loading());
 
         LiveData<Resource<UserEntity>> source = authRepository.register(
                 email, password, fullName, organization, phoneNumber
         );
-        registerResult.setValue(Resource.loading());
-
-        source.observeForever(resource -> {
+        observeUntilComplete(source, resource -> {
             registerResult.setValue(resource);
 
             if (resource.getStatus() != Resource.Status.LOADING) {
@@ -141,5 +145,29 @@ public class AuthViewModel extends AndroidViewModel {
         registerResult.setValue(null);
     }
 
-}
+    /**
+     * Observe a LiveData source, forwarding values to the callback,
+     * and auto-removing the observer after a terminal (non-LOADING) state.
+     */
+    private <T> void observeUntilComplete(LiveData<Resource<T>> source,
+                                           Observer<Resource<T>> callback) {
+        Observer<Resource<T>>[] holder = new Observer[1];
+        holder[0] = resource -> {
+            callback.onChanged(resource);
+            if (resource.getStatus() != Resource.Status.LOADING) {
+                source.removeObserver(holder[0]);
+            }
+        };
+        source.observeForever(holder[0]);
+        observerCleanups.add(() -> source.removeObserver(holder[0]));
+    }
 
+    @Override
+    protected void onCleared() {
+        super.onCleared();
+        for (Runnable cleanup : observerCleanups) {
+            cleanup.run();
+        }
+        observerCleanups.clear();
+    }
+}
